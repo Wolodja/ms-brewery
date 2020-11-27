@@ -1,6 +1,5 @@
 package guru.springframework.msbrewery.web.controller;
 
-import guru.springframework.msbrewery.web.model.BeerDto;
 import guru.springframework.msbrewery.web.model.CustomerDto;
 import guru.springframework.msbrewery.web.services.CustomerService;
 import org.springframework.http.HttpHeaders;
@@ -8,6 +7,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.ConstraintViolationException;
+import javax.validation.Valid;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @RequestMapping("/api/v1/customer/")
@@ -26,7 +29,7 @@ public class CustomerController {
     }
 
     @PostMapping
-    public ResponseEntity handlePost(@RequestBody CustomerDto customerDto) {
+    public ResponseEntity handlePost(@RequestBody @Valid CustomerDto customerDto) {
 
         CustomerDto savedCustomerDto = customerService.saveNewCustomer(customerDto);
 
@@ -38,7 +41,7 @@ public class CustomerController {
 
     @PutMapping("/{customerId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void handleUpdate(@RequestBody CustomerDto customerDto, @PathVariable UUID customerId) {
+    public void handleUpdate(@RequestBody @Valid CustomerDto customerDto, @PathVariable UUID customerId) {
         customerService.updateCustomer(customerId, customerDto);
     }
 
@@ -48,5 +51,15 @@ public class CustomerController {
         customerService.deleteById(customerId);
     }
 
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<List> validationErrorHandler(ConstraintViolationException exception) {
+        List<String> errors = new ArrayList<>(exception.getConstraintViolations().size());
+
+        exception.getConstraintViolations().forEach(constraintViolation -> {
+            errors.add(constraintViolation.getPropertyPath() + " : " + constraintViolation.getMessage());
+        });
+
+        return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+    }
 
 }
